@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  input: { flex: 1, minHeight: touchTarget, fontFamily: fonts.sans, fontSize: 17, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as const } : null) },
+  input: { flex: 1, minHeight: touchTarget, fontFamily: fonts.sans, fontSize: 17, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : null) },
   message: { minHeight: 18 },
 });
