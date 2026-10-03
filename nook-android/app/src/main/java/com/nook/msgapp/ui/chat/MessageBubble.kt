@@ -176,6 +176,7 @@ fun MessageRow(
     onLongPress: (Message, Rect) -> Unit,
     onOpenImage: (Message) -> Unit,
     onToggleReaction: (Message, String) -> Unit,
+    showSenderLabel: Boolean = true,
 ) {
     val c = Nook.colors
     val context = LocalContext.current
@@ -201,7 +202,7 @@ fun MessageRow(
             .padding(horizontal = Spacing.sm)
             .padding(top = if (chainedAbove) 2.dp else Spacing.xs),
     ) {
-        if (senderName != null && !mine) {
+        if (senderName != null && !mine && showSenderLabel) {
             NText(
                 senderName,
                 NookType.captionBold,

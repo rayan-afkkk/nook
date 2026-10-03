@@ -99,7 +99,7 @@ fun ChatPickerSheet(
                                 GroupAvatar(chat, 36.dp)
                             } else {
                                 val other = ChatLogic.otherMember(chat.members, me)
-                                Avatar(name, profiles[other]?.photoURL, size = 36.dp, seed = other ?: chat.id)
+                                Avatar(name, other?.let { profiles[it] }?.photoURL, size = 36.dp, seed = other ?: chat.id)
                             }
                             NText(name, NookType.bodyBold, modifier = Modifier.weight(1f), maxLines = 1)
                             Box(

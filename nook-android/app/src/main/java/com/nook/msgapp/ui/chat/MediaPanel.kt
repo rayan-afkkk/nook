@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -164,14 +163,16 @@ fun EmojiGrid(onEmoji: (String) -> Unit, modifier: Modifier = Modifier) {
             item(key = "h-$label", span = { GridItemSpan(maxLineSpan) }) {
                 NText(label.uppercase(), NookType.micro, c.textMuted, Modifier.padding(start = 4.dp, top = Spacing.sm, bottom = 4.dp))
             }
-            items(emoji, key = { "$label-$it" }) { e ->
-                Box(
-                    Modifier
-                        .aspectRatio(1f)
-                        .pressScale(scaleTo = 0.8f) { onEmoji(e) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(e, fontSize = 24.sp, lineHeight = 30.sp)
+            emoji.forEachIndexed { i, e ->
+                item(key = "$label-$i") {
+                    Box(
+                        Modifier
+                            .aspectRatio(1f)
+                            .pressScale(scaleTo = 0.8f) { onEmoji(e) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(e, fontSize = 24.sp, lineHeight = 30.sp)
+                    }
                 }
             }
         }
@@ -288,11 +289,18 @@ private fun PacksGrid(onSticker: (Sticker) -> Unit) {
     val packs by remember { Stickers.packsFlow().catch { e -> failed = e.friendly() } }
         .collectAsState(initial = null as List<StickerPack>?)
     val list = packs
-    when {
-        list == null && failed != null -> EmptyState("Couldn't load packs", failed ?: "", icon = Icons.Rounded.CloudOff)
-        list == null -> Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            repeat(4) { Skeleton(Modifier.size(68.dp)) }
+    if (list == null) {
+        val err = failed
+        if (err != null) {
+            EmptyState("Couldn't load packs", err, icon = Icons.Rounded.CloudOff)
+        } else {
+            Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                repeat(4) { Skeleton(Modifier.size(68.dp)) }
+            }
         }
+        return
+    }
+    when {
         list.isEmpty() -> EmptyState("No packs yet", "Make one from the Stickers tab with any photo.", icon = Icons.Rounded.Collections)
         else -> LazyVerticalGrid(
             columns = GridCells.Adaptive(72.dp),
@@ -305,13 +313,15 @@ private fun PacksGrid(onSticker: (Sticker) -> Unit) {
                 item(key = "p-${pack.id}", span = { GridItemSpan(maxLineSpan) }) {
                     NText(pack.name, NookType.captionBold, c.textMuted, Modifier.padding(start = 4.dp, top = Spacing.xs))
                 }
-                items(pack.stickers, key = { "${pack.id}-${it.publicId}-${it.url}" }) { s ->
-                    Box(
-                        Modifier
-                            .aspectRatio(1f)
-                            .pressScale(scaleTo = 0.9f) { onSticker(s) },
-                    ) {
-                        AsyncImage(model = s.url, contentDescription = "Sticker from ${pack.name}", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                pack.stickers.forEachIndexed { i, s ->
+                    item(key = "${pack.id}-$i") {
+                        Box(
+                            Modifier
+                                .aspectRatio(1f)
+                                .pressScale(scaleTo = 0.9f) { onSticker(s) },
+                        ) {
+                            AsyncImage(model = s.url, contentDescription = "Sticker from ${pack.name}", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                        }
                     }
                 }
             }
