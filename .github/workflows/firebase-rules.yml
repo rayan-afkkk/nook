@@ -1,0 +1,35 @@
+name: Deploy Firebase rules
+
+# Deploys Firestore + Realtime Database rules and Firestore indexes whenever they change on main.
+# Needs the repo secret FIREBASE_SERVICE_ACCOUNT (service-account JSON from Firebase > Project settings).
+on:
+  push:
+    branches: [main]
+    paths: ['firebase/**', '.github/workflows/firebase-rules.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Test rules on the emulators
+        run: npm test
+      - name: Deploy
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx firebase deploy --only firestore,database --project nook-39914 --non-interactive

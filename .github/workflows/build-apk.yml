@@ -1,0 +1,33 @@
+name: Build APK
+
+# Builds an installable APK on Expo (EAS). Run it from the Actions tab ("Run workflow").
+# Needs repo secrets EXPO_TOKEN and GOOGLE_SERVICES_JSON.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'preview = standalone APK for friends; development = dev client'
+        default: preview
+        type: choice
+        options: [preview, development, production]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Add google-services.json (kept out of git)
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: echo "$GS" > google-services.json
+      - name: Start EAS build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # Upload the working tree (including google-services.json) instead of the git snapshot.
+          EAS_NO_VCS: '1'
+        run: npx eas-cli@latest build --platform android --profile ${{ inputs.profile }} --non-interactive --no-wait
