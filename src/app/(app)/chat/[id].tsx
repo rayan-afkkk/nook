@@ -2,8 +2,9 @@ import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, EmptyState, ListRow, Sheet, Skeleton, Text, toast } from '@/components/ui';
 import { startCall } from '@/features/calls/callService';
@@ -101,6 +102,12 @@ function ChatSkeleton() {
 
 function ChatView({ chat, me }: { chat: Chat; me: string }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const keyboard = useReanimatedKeyboardAnimation();
+  // Android edge-to-edge: the composer sits above the navigation bar (gesture pill or 3 buttons) when the
+  // keyboard is closed, and directly on top of the keyboard when it's open. Keyboard height is measured
+  // from the bottom of the screen, so it already includes the nav bar: take the larger, never both.
+  const bottomStyle = useAnimatedStyle(() => ({ paddingBottom: Math.max(-keyboard.height.value, insets.bottom) }));
   const list = useRef<FlashListRef<Item>>(null);
   const { messages, status: loadStatus, error, hasMore, loadingMore, loadMore } = useMessages(chat.id);
   const outboxAll = useOutbox((s) => s.items);
@@ -241,7 +248,7 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <ChatHeader
         chat={chat}
         title={title}
@@ -253,7 +260,7 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
         onOpenInfo={() => router.push({ pathname: '/chat-info/[id]', params: { id: chat.id } })}
         onTimer={() => setTimerOpen(true)}
       />
-      <KeyboardAvoidingView behavior="padding" style={[styles.flex, styles.clip]}>
+      <Animated.View style={[styles.flex, styles.clip, bottomStyle]}>
         {loadStatus === 'loading' && items.length === 0 ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.textMuted} />
@@ -352,7 +359,7 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
             onSticker={(s) => send({ kind: 'sticker', media: { url: s.url, width: 512, height: 512 } })}
           />
         )}
-      </KeyboardAvoidingView>
+      </Animated.View>
 
       <MessageActionsSheet
         message={selected}
