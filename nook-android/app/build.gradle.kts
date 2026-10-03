@@ -15,6 +15,12 @@ fun nookProp(name: String): String {
     return value.trim().replace("\"", "")
 }
 
+/** Upload-key signing for Play. Values come from keystore.properties (gitignored) or CI environment variables. */
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+fun signingValue(key: String, env: String): String? = keystoreProps.getProperty(key) ?: System.getenv(env)
+
 android {
     namespace = "com.nook.msgapp"
     compileSdk = 35
@@ -23,7 +29,7 @@ android {
         applicationId = "com.nook.msgapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = (findProperty("nook.versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = "0.1.0"
 
         buildConfigField("String", "WORKER_URL", "\"${nookProp("nook.workerUrl").trimEnd('/')}\"")
@@ -33,13 +39,25 @@ android {
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${nookProp("nook.googleWebClientId")}\"")
     }
 
+    signingConfigs {
+        val storeFilePath = signingValue("storeFile", "NOOK_KEYSTORE_FILE")
+        if (storeFilePath != null) {
+            create("upload") {
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = signingValue("storePassword", "NOOK_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "NOOK_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "NOOK_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Not published to the Play Store: sign release builds with the debug key so they install directly.
-            signingConfig = signingConfigs.getByName("debug")
+            // Play requires a real upload key. Without keystore.properties the release build is left unsigned.
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
         }
     }
 

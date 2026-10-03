@@ -62,3 +62,19 @@ jobs:
           name: nook-debug-apk
           path: nook-android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+      # Play Store bundle: only when the upload-key secrets exist (see nook-android/README.md > Play Console).
+      - name: Build signed release bundle (.aab)
+        env:
+          KEYSTORE_B64: ${{ secrets.NOOK_KEYSTORE_BASE64 }}
+          NOOK_KEYSTORE_PASSWORD: ${{ secrets.NOOK_KEYSTORE_PASSWORD }}
+          NOOK_KEY_ALIAS: ${{ secrets.NOOK_KEY_ALIAS }}
+          NOOK_KEY_PASSWORD: ${{ secrets.NOOK_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "No upload key secrets; skipping the release bundle."; exit 0; fi
+          echo "$KEYSTORE_B64" | base64 -d > upload.jks
+          NOOK_KEYSTORE_FILE=upload.jks ./gradlew --no-daemon :app:bundleRelease -Pnook.versionCode=${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nook-release-aab
+          path: nook-android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: ignore

@@ -20,8 +20,7 @@ Open this `nook-android` folder (not the repo root) in Android Studio, or import
 ./gradlew :core:test             # unit tests for the pure-Kotlin logic
 ```
 
-Release builds are signed with the debug key so you can install them directly. This app isn't published on the Play
-Store.
+Release builds (`./gradlew :app:bundleRelease`) are signed with your **upload key**. See "Play Console" below.
 
 ## Before the first build: 3 things
 
@@ -44,6 +43,50 @@ Store.
 
 To set up the backend (Firebase, Cloudinary preset, Giphy key, LiveKit, Cloudflare Worker), follow steps 2 and 4–7
 of the [root README](../README.md#setup). Nothing there changes for the Kotlin app.
+
+## Play Console
+
+### 1. Make an upload key (once, keep it safe forever)
+
+```bash
+keytool -genkeypair -v -keystore upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Put `upload.jks` in `nook-android/` and create `nook-android/keystore.properties`. Both are gitignored:
+
+```properties
+storeFile=upload.jks
+storePassword=...
+keyAlias=upload
+keyPassword=...
+```
+
+Then `./gradlew :app:bundleRelease` gives you `app/build/outputs/bundle/release/app-release.aab`. Upload that to Play.
+
+To have GitHub build the `.aab` instead, add these repo secrets: `NOOK_KEYSTORE_BASE64` (output of
+`base64 -w0 upload.jks`), `NOOK_KEYSTORE_PASSWORD`, `NOOK_KEY_ALIAS` and `NOOK_KEY_PASSWORD`. Each Actions run then
+uploads a signed `nook-release-aab` with an increasing version code.
+
+### 2. Firebase fingerprints for Play
+
+Play re-signs the app with its own **app signing key**. In Play Console, go to **Test and release > App integrity >
+App signing**. Copy the SHA-1 and SHA-256 of both the app signing key and the upload key, and add all of them in
+Firebase. Then download `google-services.json` again. If you skip this, Google sign-in fails for Play installs.
+
+### 3. What the Console will ask
+
+| Item | What to enter |
+|---|---|
+| Privacy policy URL | Required. Host the text from the in-app Privacy screen (e.g. on GitHub Pages or Google Sites). |
+| Data safety | Collected: name, email, user ID (Google sign-in); messages, photos, audio, files (app functionality); device push token. Encrypted in transit: yes. Deletion: yes, in-app (Account > Delete account). Not shared with third parties for ads. Not end-to-end encrypted. |
+| Account deletion | In-app path: Account > Delete account. Play also wants a web link or form for deletion requests; a Google Form works. |
+| Foreground service | Type `microphone` / `camera`: "keeps an ongoing voice or video call running while the app is in the background". |
+| Full-screen intent | The app makes calls: "shows the incoming call screen". |
+| Content rating | Communication app with user-generated content and messaging between users. |
+| Target audience | 13+ (or 18+). User chat means no "designed for children". |
+| App access | Google sign-in is required. Give reviewers a test Google account, or explain that any Google account works. |
+
+targetSdk is 35, which matches Play's current requirement. Release builds use R8 (minify and resource shrinking).
 
 ## Layout
 
