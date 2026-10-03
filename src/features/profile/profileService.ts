@@ -1,4 +1,7 @@
-import { doc, getDoc, runTransaction, serverTimestamp } from '@react-native-firebase/firestore';
+import { doc, getDoc, runTransaction, serverTimestamp, updateDoc } from '@react-native-firebase/firestore';
+
+import { thumbnailUrl, uploadToCloudinary } from '@/features/media/cloudinary';
+import type { PickedImage } from '@/features/media/pickers';
 
 import { db, metrics } from '@/lib/firebase';
 import { UserFacingError } from '@/lib/errors';
@@ -59,4 +62,22 @@ export async function findUserByUsername(raw: string): Promise<Profile | null> {
   const userSnap = await getDoc(doc(db(), 'users', uid));
   metrics.read(1, 'find profile');
   return userSnap.exists() ? (userSnap.data() as Profile) : null;
+}
+
+/** Uploads a square photo to Cloudinary and sets it as the profile picture (null removes it). */
+export async function setProfilePhoto(uid: string, image: PickedImage | null, onProgress?: (p: number) => void): Promise<void> {
+  let photoURL: string | null = null;
+  if (image) {
+    const r = await uploadToCloudinary({ uri: image.uri, name: image.name, mime: image.mime, resourceType: 'image', onProgress });
+    photoURL = thumbnailUrl(r.url, 512);
+  }
+  await updateDoc(doc(db(), 'users', uid), { photoURL });
+  metrics.write(1, 'profile photo');
+}
+
+export async function setDisplayName(uid: string, name: string): Promise<void> {
+  const clean = name.trim().slice(0, 40);
+  if (!clean) throw new UserFacingError('Enter a name.');
+  await updateDoc(doc(db(), 'users', uid), { displayName: clean });
+  metrics.write(1, 'display name');
 }

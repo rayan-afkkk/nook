@@ -1,7 +1,7 @@
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,8 +22,10 @@ import { ChatHeader } from '@/features/chat/components/ChatHeader';
 import { Composer } from '@/features/chat/components/Composer';
 import { DateSeparator } from '@/features/chat/components/DateSeparator';
 import { ImageViewer } from '@/features/chat/components/ImageViewer';
-import { MessageActionsSheet } from '@/features/chat/components/MessageActionsSheet';
-import { MessageBubble } from '@/features/chat/components/MessageBubble';
+import * as Clipboard from 'expo-clipboard';
+
+import { BubbleBody, MessageBubble, type BubbleRect } from '@/features/chat/components/MessageBubble';
+import { MessageMenu, type MenuAction } from '@/features/chat/components/MessageMenu';
 import { OutboxBubble } from '@/features/chat/components/OutboxBubble';
 import { TypingDots } from '@/features/chat/components/TypingDots';
 import { dayLabel, otherMember, previewFor, sameDay } from '@/features/chat/model';
@@ -120,7 +122,8 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
   const blocked = useIsBlocked(otherId);
   const [now, setNow] = useState(() => Date.now());
   const [replyTo, setReplyTo] = useState<ReplyRef | null>(null);
-  const [selected, setSelected] = useState<Message | null>(null);
+  const [menu, setMenu] = useState<{ message: Message; rect: BubbleRect } | null>(null);
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const [viewer, setViewer] = useState<string | null>(null);
   const [timerOpen, setTimerOpen] = useState(false);
   const [forwarding, setForwarding] = useState<Message | null>(null);
@@ -247,6 +250,33 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
       .catch((e) => toast.error(describeError(e)));
   };
 
+  const menuActions = (m: Message | null): MenuAction[] => {
+    if (!m) return [];
+    const list: MenuAction[] = [{ key: 'reply', label: 'Reply', icon: 'arrow-undo-outline', onPress: () => reply(m) }];
+    if (m.kind === 'text' && m.text) {
+      list.push({
+        key: 'copy',
+        label: 'Copy',
+        icon: 'copy-outline',
+        onPress: () => {
+          void Clipboard.setStringAsync(m.text ?? '');
+          toast.show('Copied');
+        },
+      });
+    }
+    list.push({ key: 'forward', label: 'Forward', icon: 'arrow-redo-outline', onPress: () => setForwarding(m) });
+    if (m.senderId === me) {
+      list.push({
+        key: 'delete',
+        label: 'Delete for everyone',
+        icon: 'trash-outline',
+        destructive: true,
+        onPress: () => void deleteMessage(chat, me, m, latestId).then(() => haptics.success()).catch((e) => toast.error(describeError(e))),
+      });
+    }
+    return list;
+  };
+
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <ChatHeader
@@ -309,7 +339,7 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
                       footer={item.footer}
                       now={now}
                       onReply={reply}
-                      onLongPress={setSelected}
+                      onLongPress={(msg, rect) => setMenu({ message: msg, rect: rect ?? { x: spacing.md, y: screenH / 2 - 30, width: screenW * 0.6, height: 60 } })}
                       onOpenImage={(msg) => setViewer(msg.media?.url ?? null)}
                       onToggleReaction={(msg, emoji) => {
                         const mineEmoji = msg.reactions?.[me];
@@ -361,28 +391,30 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
         )}
       </Animated.View>
 
-      <MessageActionsSheet
-        message={selected}
-        mine={selected?.senderId === me}
-        myReaction={selected?.reactions?.[me]}
-        onClose={() => setSelected(null)}
+      <MessageMenu
+        target={menu ? { rect: menu.rect, mine: menu.message.senderId === me } : null}
+        preview={
+          menu ? (
+            <BubbleBody
+              message={menu.message}
+              me={me}
+              mine={menu.message.senderId === me}
+              replyAuthor={menu.message.replyTo ? nameOf(menu.message.replyTo.senderId) : undefined}
+              chained={false}
+              now={now}
+              maxMedia={Math.min(260, screenW * 0.66)}
+              onOpenImage={() => undefined}
+              preview
+            />
+          ) : null
+        }
+        myReaction={menu?.message.reactions?.[me]}
+        onClose={() => setMenu(null)}
         onReact={(emoji) => {
-          if (selected) void setReaction(chat.id, selected.id, me, emoji).catch((e) => toast.error(describeError(e)));
-          setSelected(null);
+          const m = menu?.message;
+          if (m) void setReaction(chat.id, m.id, me, emoji).catch((e) => toast.error(describeError(e)));
         }}
-        onReply={() => {
-          if (selected) reply(selected);
-          setSelected(null);
-        }}
-        onForward={() => {
-          setForwarding(selected);
-          setSelected(null);
-        }}
-        onDelete={() => {
-          const m = selected;
-          setSelected(null);
-          if (m) void deleteMessage(chat, me, m, latestId).then(() => haptics.success()).catch((e) => toast.error(describeError(e)));
-        }}
+        actions={menuActions(menu?.message ?? null)}
       />
 
       <Sheet visible={timerOpen} onClose={() => setTimerOpen(false)} accessibilityLabel="Disappearing messages">

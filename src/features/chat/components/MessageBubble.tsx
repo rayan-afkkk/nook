@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { memo } from 'react';
+import { memo, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
@@ -39,10 +40,13 @@ export type BubbleProps = {
   footer?: string | null;
   now: number;
   onReply: (m: Message) => void;
-  onLongPress: (m: Message) => void;
+  onLongPress: (m: Message, rect?: BubbleRect) => void;
   onOpenImage: (m: Message) => void;
   onToggleReaction: (m: Message, emoji: string) => void;
 };
+
+/** Where the bubble is on screen (window coordinates), so the long-press menu can lift it in place. */
+export type BubbleRect = { x: number; y: number; width: number; height: number };
 
 function sizeFor(media: { width?: number; height?: number }, max: number) {
   const w = media.width ?? max;
@@ -53,11 +57,23 @@ function sizeFor(media: { width?: number; height?: number }, max: number) {
 
 function BubbleBase(props: BubbleProps) {
   const { message: m, me, mine, senderName, replyAuthor, chained, footer, now, onReply, onLongPress, onOpenImage, onToggleReaction } = props;
-  const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const maxMedia = Math.min(260, width * 0.66);
   const x = useSharedValue(0);
   const armed = useSharedValue(false);
+  const press = useSharedValue(1);
+  const anchor = useRef<View>(null);
+  const squeeze = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
+  const longPress = () => {
+    haptics.medium();
+    press.set(withSpring(1, motion.spring));
+    const node = anchor.current;
+    if (!node) {
+      onLongPress(m);
+      return;
+    }
+    node.measureInWindow((bx, by, bw, bh) => onLongPress(m, { x: bx, y: by, width: bw, height: bh }));
+  };
 
   const pan = Gesture.Pan()
     .activeOffsetX(14)
@@ -84,6 +100,76 @@ function BubbleBase(props: BubbleProps) {
     transform: [{ scale: interpolate(x.value, [0, REPLY_TRIGGER], [0.6, 1], 'clamp') }],
   }));
 
+  return (
+    <Animated.View entering={m.pending ? FadeIn.duration(180) : undefined} style={[styles.wrap, chained ? styles.chained : styles.spaced]}>
+      {senderName && !mine ? (
+        <Text variant="captionBold" color="textMuted" style={styles.sender}>
+          {senderName}
+        </Text>
+      ) : null}
+      <GestureDetector gesture={pan}>
+        <View>
+          <Animated.View style={[styles.replyArrow, arrowStyle]} pointerEvents="none">
+            <Icon name="arrow-undo" size={18} color="textMuted" />
+          </Animated.View>
+          <Animated.View style={[styles.row, mine ? styles.rowMine : styles.rowTheirs, rowStyle]}>
+            <View ref={anchor} collapsable={false} style={styles.anchor}>
+              <Animated.View style={squeeze}>
+                <BubbleBody
+                  message={m}
+                  me={me}
+                  mine={mine}
+                  senderName={senderName}
+                  replyAuthor={replyAuthor}
+                  chained={chained}
+                  now={now}
+                  maxMedia={maxMedia}
+                  onOpenImage={onOpenImage}
+                  onLongPress={longPress}
+                  onPressIn={() => {
+                    press.set(withTiming(0.96, { duration: 350 }));
+                  }}
+                  onPressOut={() => {
+                    press.set(withSpring(1, motion.spring));
+                  }}
+                />
+              </Animated.View>
+            </View>
+          </Animated.View>
+        </View>
+      </GestureDetector>
+      <ReactionPills reactions={m.reactions} me={me} mine={mine} onToggle={(e) => onToggleReaction(m, e)} />
+      {footer ? (
+        <Text variant="micro" color="textMuted" style={styles.footer} accessibilityLiveRegion="polite">
+          {footer}
+        </Text>
+      ) : null}
+    </Animated.View>
+  );
+}
+
+export const MessageBubble = memo(BubbleBase);
+
+type BodyProps = {
+  message: Message;
+  me: string;
+  mine: boolean;
+  senderName?: string | null;
+  replyAuthor?: string;
+  chained: boolean;
+  now: number;
+  maxMedia: number;
+  onOpenImage: (m: Message) => void;
+  onLongPress?: () => void;
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+  /** Rendered inside the long-press menu: not interactive, fills its measured width. */
+  preview?: boolean;
+};
+
+/** The bubble itself (no swipe, reactions or footer). Shared by the list and the long-press menu. */
+export function BubbleBody({ message: m, mine, senderName, replyAuthor, chained, now, maxMedia, onOpenImage, onLongPress, onPressIn, onPressOut, preview }: BodyProps): ReactNode {
+  const { colors } = useTheme();
   const time = m.createdAt ? timeLabel(m.createdAt.toMillis(), now) : '';
   const bare = m.kind === 'sticker' || m.kind === 'gif' || m.kind === 'image';
   const fg = mine ? colors.onPrimary : colors.text;
@@ -93,7 +179,7 @@ function BubbleBase(props: BubbleProps) {
       case 'image': {
         const size = sizeFor(m.media ?? {}, maxMedia);
         return (
-          <Pressable accessibilityRole="imagebutton" accessibilityLabel="Photo. Open" onPress={() => onOpenImage(m)} onLongPress={() => onLongPress(m)} delayLongPress={300}>
+          <Pressable accessibilityRole="imagebutton" accessibilityLabel="Photo. Open" onPress={() => onOpenImage(m)} onLongPress={onLongPress} delayLongPress={320} disabled={preview}>
             <Image
               source={{ uri: thumbnailUrl(m.media?.url ?? '', size.width * 2) }}
               style={[styles.media, size, { backgroundColor: colors.surfaceRaised }]}
@@ -137,7 +223,7 @@ function BubbleBase(props: BubbleProps) {
         return m.media ? <VoiceBubble media={m.media} mine={mine} /> : null;
       default:
         return (
-          <Text variant="bodyLarge" style={{ color: fg }} selectable={false}>
+          <Text variant="bodyLarge" style={{ color: fg, fontSize: 15, lineHeight: 21 }} selectable={false}>
             {m.text}
           </Text>
         );
@@ -145,72 +231,50 @@ function BubbleBase(props: BubbleProps) {
   })();
 
   return (
-    <Animated.View entering={m.pending ? FadeIn.duration(180) : undefined} style={[styles.wrap, chained ? styles.chained : styles.spaced]}>
-      {senderName && !mine ? (
-        <Text variant="captionBold" color="textMuted" style={styles.sender}>
-          {senderName}
-        </Text>
-      ) : null}
-      <GestureDetector gesture={pan}>
-        <View>
-          <Animated.View style={[styles.replyArrow, arrowStyle]} pointerEvents="none">
-            <Icon name="arrow-undo" size={18} color="textMuted" />
-          </Animated.View>
-          <Animated.View style={[styles.row, mine ? styles.rowMine : styles.rowTheirs, rowStyle]}>
-            <Pressable
-              onLongPress={() => {
-                haptics.medium();
-                onLongPress(m);
-              }}
-              delayLongPress={300}
-              accessibilityRole="text"
-              accessibilityHint="Long press for reactions and more. Swipe right to reply."
-              accessibilityLabel={`${mine ? 'You' : (senderName ?? 'Them')}: ${m.kind === 'text' ? (m.text ?? '') : m.kind}, ${time}`}
-              style={[
-                styles.bubble,
-                bare
-                  ? styles.bare
-                  : {
-                      backgroundColor: mine ? colors.primary : colors.surface,
-                      borderColor: mine ? colors.primary : colors.border,
-                    },
-                !bare && !chained && (mine ? styles.tailMine : styles.tailTheirs),
-              ]}
-            >
-              {m.forwarded ? (
-                <View style={styles.forwarded}>
-                  <Icon name="arrow-redo-outline" size={12} color={mine ? colors.onPrimary : colors.textMuted} />
-                  <Text variant="micro" style={{ color: mine ? colors.onPrimary : colors.textMuted, opacity: 0.8 }}>
-                    Forwarded
-                  </Text>
-                </View>
-              ) : null}
-              {m.replyTo ? <ReplyQuote reply={m.replyTo} author={replyAuthor ?? 'Message'} onMine={mine && !bare} /> : null}
-              {content}
-              <View style={[styles.meta, bare && styles.metaBare, bare && { backgroundColor: colors.overlay }]}>
-                {m.expireAt ? <Icon name="timer-outline" size={11} color={bare ? '#fff' : mine ? colors.onPrimary : colors.textMuted} /> : null}
-                <Text variant="micro" style={{ color: bare ? '#fff' : mine ? colors.onPrimary : colors.textMuted, opacity: 0.75 }}>
-                  {time}
-                </Text>
-                {mine && m.pending ? (
-                  <Icon name="time-outline" size={11} color={bare ? '#fff' : colors.onPrimary} />
-                ) : null}
-              </View>
-            </Pressable>
-          </Animated.View>
+    <Pressable
+      onLongPress={onLongPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      delayLongPress={320}
+      disabled={preview}
+      accessibilityRole="text"
+      accessibilityHint="Long press for reactions and more. Swipe right to reply."
+      accessibilityLabel={`${mine ? 'You' : (senderName ?? 'Them')}: ${m.kind === 'text' ? (m.text ?? '') : m.kind}, ${time}`}
+      style={[
+        styles.bubble,
+        bare
+          ? styles.bare
+          : {
+              backgroundColor: mine ? colors.primary : colors.surface,
+              borderColor: mine ? colors.primary : colors.border,
+            },
+        !bare && !chained && (mine ? styles.tailMine : styles.tailTheirs),
+        preview && styles.fill,
+      ]}
+    >
+      {m.forwarded ? (
+        <View style={styles.forwarded}>
+          <Icon name="arrow-redo-outline" size={12} color={mine ? colors.onPrimary : colors.textMuted} />
+          <Text variant="micro" style={{ color: mine ? colors.onPrimary : colors.textMuted, opacity: 0.8 }}>
+            Forwarded
+          </Text>
         </View>
-      </GestureDetector>
-      <ReactionPills reactions={m.reactions} me={me} mine={mine} onToggle={(e) => onToggleReaction(m, e)} />
-      {footer ? (
-        <Text variant="micro" color="textMuted" style={styles.footer} accessibilityLiveRegion="polite">
-          {footer}
-        </Text>
       ) : null}
-    </Animated.View>
+      {m.replyTo ? <ReplyQuote reply={m.replyTo} author={replyAuthor ?? 'Message'} onMine={mine && !bare} /> : null}
+      {content}
+      <View style={[styles.meta, bare && styles.metaBare, bare && { backgroundColor: colors.overlay }]}>
+        {m.expireAt ? <Icon name="timer-outline" size={11} color={bare ? '#fff' : mine ? colors.onPrimary : colors.textMuted} /> : null}
+        <Text variant="micro" style={{ color: bare ? '#fff' : mine ? colors.onPrimary : colors.textMuted, opacity: 0.75 }}>
+          {time}
+        </Text>
+        {mine && m.pending ? (
+          <Icon name="time-outline" size={11} color={bare ? '#fff' : colors.onPrimary} />
+        ) : null}
+      </View>
+    </Pressable>
   );
 }
 
-export const MessageBubble = memo(BubbleBase);
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: spacing.md },
@@ -222,12 +286,12 @@ const styles = StyleSheet.create({
   rowTheirs: { justifyContent: 'flex-start' },
   replyArrow: { position: 'absolute', left: 0, top: 0, bottom: 0, justifyContent: 'center' },
   bubble: {
-    maxWidth: '80%',
-    borderRadius: 22,
+    maxWidth: '100%',
+    borderRadius: 20,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingTop: 9,
-    paddingBottom: 7,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
   },
   bare: { padding: 0, borderWidth: 0, backgroundColor: 'transparent' },
   tailMine: { borderBottomRightRadius: 6 },
@@ -237,5 +301,7 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-end', marginTop: 2 },
   metaBare: { position: 'absolute', right: 8, bottom: 8, borderRadius: radius.pill, paddingHorizontal: 6, paddingVertical: 2 },
   forwarded: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  anchor: { maxWidth: '80%' },
+  fill: { maxWidth: '100%' },
   footer: { alignSelf: 'flex-end', marginRight: spacing.xs, marginTop: 3 },
 });

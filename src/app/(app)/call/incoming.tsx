@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { NavigationBar } from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
@@ -102,6 +103,7 @@ export default function IncomingCall() {
   return (
     <View style={[styles.root, { paddingTop: insets.top + spacing.xxxl, paddingBottom: insets.bottom + spacing.xxl }]}>
       <StatusBar style="light" />
+      <NavigationBar style="dark" />
       <View style={styles.top}>
         <View style={styles.avatarWrap}>
           {!gone ? [0, 0.33, 0.66].map((o) => <Ring key={o} t={t} offset={o} />) : null}

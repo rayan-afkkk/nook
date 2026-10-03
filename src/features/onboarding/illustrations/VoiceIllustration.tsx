@@ -31,14 +31,14 @@ export function VoiceIllustration({ active, reduceMotion, size }: IllustrationPr
       <PopIn active={active} reduceMotion={reduceMotion} delay={120} from={0.7}>
         <View style={[styles.voice, { width: size * 0.92 }]}>
           <View style={styles.play}>
-            <Ionicons name="play" size={18} color={palette.black} />
+            <Ionicons allowFontScaling={false} name="play" size={18} color={palette.black} />
           </View>
           <View style={styles.wave}>
             {ENVELOPE.map((_, i) => (
               <Bar key={i} i={i} t={t} maxHeight={34} />
             ))}
           </View>
-          <Text style={styles.speed}>1.5×</Text>
+          <Text allowFontScaling={false} style={styles.speed}>1.5×</Text>
         </View>
       </PopIn>
 
@@ -46,21 +46,21 @@ export function VoiceIllustration({ active, reduceMotion, size }: IllustrationPr
         <PopIn active={active} reduceMotion={reduceMotion} delay={520} rotate={-8}>
           <Float active={active} reduceMotion={reduceMotion} amplitude={6} duration={2000}>
             <View style={[styles.tile, { backgroundColor: palette.lavender }]}>
-              <Text style={styles.gif}>GIF</Text>
+              <Text allowFontScaling={false} style={styles.gif}>GIF</Text>
             </View>
           </Float>
         </PopIn>
         <PopIn active={active} reduceMotion={reduceMotion} delay={720} rotate={7}>
           <Float active={active} reduceMotion={reduceMotion} delay={300} amplitude={7} duration={2300}>
             <View style={[styles.tile, styles.sticker, { backgroundColor: palette.peach }]}>
-              <Ionicons name="happy-outline" size={44} color="#1A1714" />
+              <Ionicons allowFontScaling={false} name="happy-outline" size={44} color="#1A1714" />
             </View>
           </Float>
         </PopIn>
         <PopIn active={active} reduceMotion={reduceMotion} delay={920} rotate={-4}>
           <Float active={active} reduceMotion={reduceMotion} delay={600} amplitude={5} duration={1900}>
             <View style={[styles.tile, styles.small, { backgroundColor: palette.mint }]}>
-              <Ionicons name="image-outline" size={28} color="#1A1714" />
+              <Ionicons allowFontScaling={false} name="image-outline" size={28} color="#1A1714" />
             </View>
           </Float>
         </PopIn>

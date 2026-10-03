@@ -15,5 +15,5 @@ type Props = {
 export function Icon({ name, size = 22, color = 'text' }: Props) {
   const { colors } = useTheme();
   const resolved = color in colors ? (colors[color as keyof ThemeColors] as string) : color;
-  return <Ionicons name={name} size={size} color={resolved} />;
+  return <Ionicons name={name} size={size} color={resolved} allowFontScaling={false} />;
 }

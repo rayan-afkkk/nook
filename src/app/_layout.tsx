@@ -7,6 +7,7 @@ import { InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { NavigationBar } from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
@@ -75,6 +76,8 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      {/* Android nav bar buttons follow the theme ('dark' = dark bar, light buttons). */}
+      <NavigationBar style={scheme === 'dark' ? 'dark' : 'light'} />
       <Stack
         screenOptions={{
           headerShown: false,

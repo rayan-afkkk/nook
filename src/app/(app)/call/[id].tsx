@@ -1,6 +1,7 @@
 import { VideoView } from '@livekit/react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
+import { NavigationBar } from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
@@ -143,6 +144,7 @@ export default function CallScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
+      <NavigationBar style="dark" />
       {showRemoteVideo ? <VideoView videoTrack={state.remoteVideo} style={styles.fill} objectFit="cover" /> : null}
       {state.localVideo ? (
         <Animated.View entering={FadeIn} style={[styles.self, { top: insets.top + spacing.md }]}>

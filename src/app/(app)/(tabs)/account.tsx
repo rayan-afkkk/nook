@@ -1,6 +1,6 @@
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import {
@@ -12,21 +12,27 @@ import {
   Divider,
   Header,
   ListRow,
+  PressableScale,
   ProgressBar,
   Screen,
   SegmentedControl,
+  Sheet,
   Text,
+  TextField,
   toast,
+  Icon,
 } from '@/components/ui';
 import { CACHE_BUDGET_BYTES, clearMediaCache, readStorageInfo, type StorageInfo } from '@/features/account/cache';
 import { deleteAccount, signOut } from '@/features/auth/authService';
 import { useSession } from '@/features/auth/session';
 import { useLock } from '@/features/lock/lockStore';
+import { pickAvatar } from '@/features/media/pickers';
+import { setDisplayName, setProfilePhoto } from '@/features/profile/profileService';
 import { describeError } from '@/lib/errors';
 import { formatBytes } from '@/lib/format';
 import { haptics } from '@/lib/haptics';
 import { usePrefs, type Appearance } from '@/stores/prefs';
-import { spacing } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 
 const APPEARANCE = [
   { value: 'system', label: 'System' },
@@ -45,6 +51,29 @@ export default function Account() {
   const [clearing, setClearing] = useState(false);
   const [confirm, setConfirm] = useState<'signOut' | 'delete' | null>(null);
   const [working, setWorking] = useState(false);
+  const { colors } = useTheme();
+  const [photoSheet, setPhotoSheet] = useState(false);
+  const [uploading, setUploading] = useState<number | null>(null);
+  const [nameSheet, setNameSheet] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
+  const changePhoto = async (source: 'library' | 'camera' | 'remove') => {
+    setPhotoSheet(false);
+    if (!profile) return;
+    try {
+      const image = source === 'remove' ? null : await pickAvatar(source);
+      if (source !== 'remove' && !image) return;
+      setUploading(0);
+      await setProfilePhoto(profile.uid, image, setUploading);
+      haptics.success();
+      toast.success(image ? 'Profile photo updated.' : 'Profile photo removed.');
+    } catch (e) {
+      toast.error(describeError(e));
+    } finally {
+      setUploading(null);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -89,11 +118,39 @@ export default function Account() {
       <View style={styles.body}>
         <Animated.View entering={FadeInDown.duration(260)}>
           <Card style={styles.profile}>
-            <Avatar name={profile?.displayName ?? '?'} uri={profile?.photoURL} size={64} seed={profile?.uid} />
+            <PressableScale
+              scaleTo={0.94}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
+              onPress={() => setPhotoSheet(true)}
+              disabled={uploading !== null}
+            >
+              <Avatar name={profile?.displayName ?? '?'} uri={profile?.photoURL} size={60} seed={profile?.uid} />
+              {uploading !== null ? (
+                <View style={[styles.avatarBusy, { backgroundColor: colors.overlay }]}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : null}
+              <View style={[styles.cameraBadge, { backgroundColor: colors.primary, borderColor: colors.surface }]}>
+                <Icon name="camera" size={12} color={colors.onPrimary} />
+              </View>
+            </PressableScale>
             <View style={styles.flex}>
-              <Text variant="headline" numberOfLines={1}>
-                {profile?.displayName}
-              </Text>
+              <PressableScale
+                scaleTo={0.98}
+                accessibilityRole="button"
+                accessibilityLabel={`Name: ${profile?.displayName ?? ''}. Edit`}
+                onPress={() => {
+                  setNameDraft(profile?.displayName ?? '');
+                  setNameSheet(true);
+                }}
+                style={styles.nameRow}
+              >
+                <Text variant="headline" numberOfLines={1} style={styles.flexShrink}>
+                  {profile?.displayName}
+                </Text>
+                <Icon name="pencil" size={14} color="textMuted" />
+              </PressableScale>
               <Text variant="body" color="textMuted" numberOfLines={1}>
                 @{profile?.username}
               </Text>
@@ -190,6 +247,38 @@ export default function Account() {
         </Text>
       </View>
 
+      <Sheet visible={photoSheet} onClose={() => setPhotoSheet(false)} accessibilityLabel="Profile photo">
+        <Text variant="headline">Profile photo</Text>
+        <ListRow icon="images-outline" title="Choose a photo" subtitle="Cropped square" showChevron={false} onPress={() => void changePhoto('library')} />
+        <ListRow icon="camera-outline" title="Take a photo" showChevron={false} onPress={() => void changePhoto('camera')} />
+        {profile?.photoURL ? (
+          <ListRow icon="trash-outline" title="Remove photo" destructive showChevron={false} onPress={() => void changePhoto('remove')} />
+        ) : null}
+      </Sheet>
+      <Sheet visible={nameSheet} onClose={() => setNameSheet(false)} accessibilityLabel="Edit name">
+        <Text variant="headline">Your name</Text>
+        <Text variant="caption" color="textMuted" style={styles.sheetText}>
+          Shown on your messages. Your @username can’t change.
+        </Text>
+        <TextField label="Display name" value={nameDraft} onChangeText={setNameDraft} maxLength={40} autoFocus />
+        <Button
+          title="Save"
+          icon="checkmark"
+          loading={savingName}
+          disabled={!nameDraft.trim() || nameDraft.trim() === profile?.displayName}
+          onPress={() => {
+            if (!profile) return;
+            setSavingName(true);
+            setDisplayName(profile.uid, nameDraft)
+              .then(() => {
+                haptics.success();
+                setNameSheet(false);
+              })
+              .catch((e) => toast.error(describeError(e)))
+              .finally(() => setSavingName(false));
+          }}
+        />
+      </Sheet>
       <ConfirmSheet
         visible={confirm === 'signOut'}
         title="Sign out?"
@@ -218,6 +307,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   chip: { marginTop: spacing.xs },
+  avatarBusy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  cameraBadge: { position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 },
+  flexShrink: { flexShrink: 1 },
+  sheetText: { marginBottom: spacing.sm },
   device: { gap: spacing.lg },
   deviceHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   meter: { gap: spacing.xs },

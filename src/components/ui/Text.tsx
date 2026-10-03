@@ -17,7 +17,7 @@ export function Text({ variant = 'body', color = 'text', align, style, ...rest }
   const { colors } = useTheme();
   return (
     <RNText
-      maxFontSizeMultiplier={1.6}
+      allowFontScaling={false}
       {...rest}
       style={[typography[variant], { color: colors[color], textAlign: align }, style]}
     />

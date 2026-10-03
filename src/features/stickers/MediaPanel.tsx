@@ -40,6 +40,7 @@ export function MediaPanel({ height, onEmoji, onGiphy, onSticker }: Props) {
           <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Icon name="search-outline" size={16} color="textMuted" />
             <TextInput
+                allowFontScaling={false}
               value={q}
               onChangeText={setQ}
               placeholder={tab === 'gifs' ? 'Search GIFs' : 'Search stickers'}

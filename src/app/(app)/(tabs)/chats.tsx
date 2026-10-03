@@ -95,6 +95,7 @@ export default function Chats() {
           <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Icon name="search-outline" size={18} color="textMuted" />
             <TextInput
+                allowFontScaling={false}
               autoFocus
               value={q}
               onChangeText={setQ}

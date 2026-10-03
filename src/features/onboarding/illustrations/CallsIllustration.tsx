@@ -43,7 +43,7 @@ export function CallsIllustration({ active, reduceMotion, size }: IllustrationPr
       <View style={[styles.centerWrap, { marginLeft: -center / 2, marginTop: -center / 2 }]}>
         <PopIn active={active} reduceMotion={reduceMotion} delay={80} from={0.6}>
           <View style={[styles.avatar, { width: center, height: center, borderRadius: center / 2, backgroundColor: palette.lavender }]}>
-            <Ionicons name="call" size={36} color="#1A1714" />
+            <Ionicons allowFontScaling={false} name="call" size={36} color="#1A1714" />
           </View>
         </PopIn>
       </View>
@@ -61,7 +61,7 @@ export function CallsIllustration({ active, reduceMotion, size }: IllustrationPr
             <PopIn active={active} reduceMotion={reduceMotion} delay={500 + i * 420} from={0.2}>
               <Float active={active} reduceMotion={reduceMotion} delay={i * 200} amplitude={4} duration={2000 + i * 150}>
                 <View style={[styles.avatar, { width: d, height: d, borderRadius: d / 2, backgroundColor: f.color }]}>
-                  <Text style={styles.initial}>{f.initial}</Text>
+                  <Text allowFontScaling={false} style={styles.initial}>{f.initial}</Text>
                 </View>
                 <View style={styles.onlineDot} />
               </Float>

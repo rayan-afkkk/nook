@@ -160,6 +160,7 @@ export function Composer({ replyTo, replyAuthor, onCancelReply, onSendText, onTy
             <IconButton icon="add" label="Attach" onPress={() => setAttachOpen(true)} variant="filled" />
             <View style={[styles.field, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <TextInput
+                allowFontScaling={false}
                 ref={input}
                 value={text}
                 onChangeText={(t) => {

@@ -22,5 +22,5 @@ export function Card({ tone = 'surface', padded = true, style, ...rest }: Props)
 
 const styles = StyleSheet.create({
   card: { borderRadius: radius.card, borderWidth: 1, overflow: 'hidden' },
-  padded: { padding: spacing.lg },
+  padded: { padding: spacing.md },
 });

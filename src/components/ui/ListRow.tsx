@@ -26,7 +26,7 @@ export function ListRow({ icon, title, subtitle, onPress, destructive, right, sh
     <View style={styles.row}>
       {icon ? (
         <View style={[styles.iconTile, { backgroundColor: colors.surfaceRaised }]}>
-          <Icon name={icon} size={20} color={destructive ? 'danger' : 'text'} />
+          <Icon name={icon} size={18} color={destructive ? 'danger' : 'text'} />
         </View>
       ) : null}
       <View style={styles.texts}>
@@ -58,15 +58,15 @@ export function ListRow({ icon, title, subtitle, onPress, destructive, right, sh
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 64,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.sm,
   },
   iconTile: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',

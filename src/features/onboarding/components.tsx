@@ -34,7 +34,7 @@ function Word({ word, index, active, reduceMotion }: { word: string; index: numb
     opacity: p.value,
     transform: [{ translateY: (1 - p.value) * 18 }],
   }));
-  return <Animated.Text style={[styles.word, style]}>{word} </Animated.Text>;
+  return <Animated.Text allowFontScaling={false} style={[styles.word, style]}>{word} </Animated.Text>;
 }
 
 export function Headline({ text, active, reduceMotion }: { text: string; active: boolean; reduceMotion: boolean }) {
@@ -136,7 +136,7 @@ export function ShimmerButton({ title, onPress, shimmer }: { title: string; onPr
       }}
       style={styles.button}
     >
-      <Animated.Text style={styles.buttonText}>{title}</Animated.Text>
+      <Animated.Text allowFontScaling={false} style={styles.buttonText}>{title}</Animated.Text>
       <Animated.View pointerEvents="none" style={[styles.shine, shine]}>
         <Svg width="100%" height="100%">
           <Defs>

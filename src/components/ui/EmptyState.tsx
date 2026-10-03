@@ -14,7 +14,7 @@ export function EmptyState({ icon, title, message, action }: Props) {
   return (
     <Animated.View entering={FadeInDown.duration(300)} style={styles.wrap} accessible accessibilityLabel={`${title}. ${message}`}>
       <View style={[styles.iconRing, { borderColor: colors.border }]}>
-        <Icon name={icon} size={30} color="textMuted" />
+        <Icon name={icon} size={26} color="textMuted" />
       </View>
       <Text variant="headline" align="center">
         {title}
@@ -30,9 +30,9 @@ export function EmptyState({ icon, title, message, action }: Props) {
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xxl, paddingVertical: spacing.xxxl, gap: spacing.sm },
   iconRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

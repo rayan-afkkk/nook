@@ -77,12 +77,12 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 56,
+    minHeight: 50,
     borderRadius: radius.pill,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   block: { alignSelf: 'stretch' },
   inline: { alignSelf: 'flex-start', minHeight: 48 },

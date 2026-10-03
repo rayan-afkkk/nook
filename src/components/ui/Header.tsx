@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
-    minHeight: 64,
+    minHeight: 56,
   },
   rowAfterBack: { paddingTop: 0 },
   title: { flex: 1 },

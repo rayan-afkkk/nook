@@ -35,6 +35,7 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
           </Text>
         ) : null}
         <TextInput
+                allowFontScaling={false}
           ref={ref}
           accessibilityLabel={label}
           accessibilityHint={message ?? undefined}
@@ -69,7 +70,7 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
 const styles = StyleSheet.create({
   wrap: { gap: spacing.xs, marginBottom: spacing.xs },
   field: {
-    minHeight: 56,
+    minHeight: 50,
     borderRadius: radius.md,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -77,6 +78,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  input: { flex: 1, minHeight: touchTarget, fontFamily: fonts.sans, fontSize: 17, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : null) },
+  input: { flex: 1, minHeight: touchTarget, fontFamily: fonts.sans, fontSize: 16, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : null) },
   message: { minHeight: 18 },
 });

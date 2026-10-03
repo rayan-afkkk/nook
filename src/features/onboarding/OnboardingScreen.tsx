@@ -1,3 +1,4 @@
+import { NavigationBar } from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -71,7 +72,7 @@ function Page({ index, scrollX, width, artSize, active, reduceMotion }: PageProp
       </Animated.View>
       <View style={styles.copy}>
         <Headline text={slide.title} active={active} reduceMotion={reduceMotion} />
-        <Text style={styles.body} maxFontSizeMultiplier={1.4}>
+        <Text allowFontScaling={false} style={styles.body}>
           {slide.body}
         </Text>
       </View>
@@ -165,6 +166,7 @@ export function OnboardingScreen({ onDone, withSplash = true }: Props) {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
+      <NavigationBar style="dark" />
       <Animated.View style={[StyleSheet.absoluteFill, contentStyle]} pointerEvents={splashDone ? 'auto' : 'none'}>
         <Glow tints={SLIDES.map((s) => s.tint)} scrollX={scrollX} width={width} top={insets.top + artSize * 0.5 - width * 0.75 + 70} />
 
@@ -177,7 +179,7 @@ export function OnboardingScreen({ onDone, withSplash = true }: Props) {
             hitSlop={8}
             style={styles.skip}
           >
-            <Text style={styles.skipText}>Skip</Text>
+            <Text allowFontScaling={false} style={styles.skipText}>Skip</Text>
           </Pressable>
         </View>
 
@@ -228,7 +230,7 @@ function SplashWordmark({ reduceMotion }: { reduceMotion: boolean }) {
     if (!reduceMotion) p.value = withDelay(350, withTiming(1, { duration: 500 }));
   }, [p, reduceMotion]);
   const style = useAnimatedStyle(() => ({ opacity: p.value, transform: [{ translateY: 8 * (1 - p.value) }] }));
-  return <Animated.Text style={[styles.wordmark, style]}>NOOK</Animated.Text>;
+  return <Animated.Text allowFontScaling={false} style={[styles.wordmark, style]}>NOOK</Animated.Text>;
 }
 
 const styles = StyleSheet.create({

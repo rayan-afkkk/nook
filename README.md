@@ -17,13 +17,16 @@ Firebase's free **Spark** plan, a free Cloudflare Worker, Cloudinary (media), Gi
   fingerprint. Locks on launch and after 30 s in the background, hides the app-switcher preview, slows down repeated
   wrong guesses. "Forgot" signs you out.
 - **Chats:** DMs and groups (add by exact username, group info, rename, leave), text, replies (swipe right),
-  reactions, long-press sheet (react / reply / copy / forward / delete), photos, files up to 10 MB, voice notes
+  reactions, an animated long-press menu (the bubble lifts, reactions pop in, then reply / copy / forward / delete), photos, files up to 10 MB, voice notes
   (hold to record, slide to cancel, waveform, 1×/1.5×/2×), GIFs and stickers (Giphy), custom sticker packs shared
   with everyone, date separators, "Seen", typing dots, online dots, unread badges, optimistic sending with retry.
 - **Disappearing messages** per chat (off / 24 h / 7 d).
 - **Push notifications** that only ever say who it's from ("Ali sent you a photo", "New message in The Boys").
 - **1:1 voice and video calls** with a full-screen incoming call screen, even when the app is closed (see
   [Android limitations](#incoming-calls-on-android-honest-limitations)).
+- **Profile:** change your photo (cropped square, stored on Cloudinary) and display name from Account.
+- **Fixed text size:** NOOK ignores the phone's font-size setting so layouts look the same on every phone. This is a
+  deliberate trade-off against Android's accessibility text scaling.
 - **Account:** profile, device storage with Clear cache, Appearance (System / Light / Dark), app lock, notifications,
   disappearing default, blocked users, View Onboarding, Help, Privacy & Terms, Sign Out, Delete Account, and a
   Firestore read/write counter in development builds.

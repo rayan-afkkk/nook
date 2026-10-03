@@ -113,7 +113,7 @@ export const spacing = {
 export const radius = {
   sm: 12,
   md: 16,
-  card: 24,
+  card: 20,
   pill: 999,
 } as const;
 
@@ -130,17 +130,17 @@ export const fonts = {
 } as const;
 
 export const typography = {
-  display: { fontFamily: fonts.serif, fontSize: 48, lineHeight: 52, letterSpacing: -0.5 },
-  title: { fontFamily: fonts.serif, fontSize: 40, lineHeight: 44, letterSpacing: -0.4 },
-  headline: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 34, letterSpacing: -0.2 },
-  subhead: { fontFamily: fonts.serif, fontSize: 24, lineHeight: 28 },
-  bodyLarge: { fontFamily: fonts.sans, fontSize: 17, lineHeight: 24 },
-  body: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 21 },
-  bodyBold: { fontFamily: fonts.sansBold, fontSize: 15, lineHeight: 21 },
-  label: { fontFamily: fonts.sansSemiBold, fontSize: 15, lineHeight: 20 },
-  caption: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 18 },
-  captionBold: { fontFamily: fonts.sansSemiBold, fontSize: 13, lineHeight: 18 },
-  micro: { fontFamily: fonts.sansMedium, fontSize: 11, lineHeight: 14, letterSpacing: 0.3 },
+  display: { fontFamily: fonts.serif, fontSize: 40, lineHeight: 44, letterSpacing: -0.4 },
+  title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 38, letterSpacing: -0.3 },
+  headline: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 30, letterSpacing: -0.2 },
+  subhead: { fontFamily: fonts.serif, fontSize: 21, lineHeight: 25 },
+  bodyLarge: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 22 },
+  body: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20 },
+  bodyBold: { fontFamily: fonts.sansBold, fontSize: 14, lineHeight: 20 },
+  label: { fontFamily: fonts.sansSemiBold, fontSize: 14, lineHeight: 19 },
+  caption: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 17 },
+  captionBold: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 17 },
+  micro: { fontFamily: fonts.sansMedium, fontSize: 10.5, lineHeight: 13, letterSpacing: 0.3 },
 } as const;
 
 export type TypographyVariant = keyof typeof typography;

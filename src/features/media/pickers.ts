@@ -48,3 +48,16 @@ export async function pickFile(): Promise<PickedFile | null> {
   if ((a.size ?? 0) > MAX_FILE_BYTES) throw new UserFacingError('That file is over the 10 MB limit.');
   return { uri: a.uri, name: a.name, mime: a.mimeType ?? 'application/octet-stream', size: a.size ?? 0 };
 }
+
+/** Square profile photo, 512px JPEG. */
+export async function pickAvatar(source: 'library' | 'camera'): Promise<PickedImage | null> {
+  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1 };
+  if (source === 'camera') {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) throw new UserFacingError('Camera access is off. Turn it on in Android settings.');
+  }
+  const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+  if (result.canceled || !result.assets[0]) return null;
+  const out = await manipulateAsync(result.assets[0].uri, [{ resize: { width: 512, height: 512 } }], { compress: 0.85, format: SaveFormat.JPEG });
+  return { uri: out.uri, width: 512, height: 512, name: `avatar-${Date.now()}.jpg`, mime: 'image/jpeg' };
+}

@@ -40,9 +40,9 @@ function Row({ chat, me, now, onPress }: { chat: Chat; me: string; now: number; 
       style={styles.row}
     >
       {chat.type === 'group' ? (
-        <GroupAvatar name={name} seed={chat.id} />
+        <GroupAvatar name={name} seed={chat.id} size={46} />
       ) : (
-        <Avatar name={name} uri={other?.photoURL} size={52} online={presence.online} seed={otherId} />
+        <Avatar name={name} uri={other?.photoURL} size={46} online={presence.online} seed={otherId} />
       )}
       <View style={styles.texts}>
         <View style={styles.top}>
@@ -75,7 +75,7 @@ function Row({ chat, me, now, onPress }: { chat: Chat; me: string; now: number; 
 export const ChatRow = memo(Row);
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, minHeight: 72 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: 10, minHeight: 64 },
   texts: { flex: 1, gap: 3 },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   bottom: { flexDirection: 'row', alignItems: 'center', gap: 5 },
