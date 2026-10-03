@@ -253,7 +253,7 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
         onOpenInfo={() => router.push({ pathname: '/chat-info/[id]', params: { id: chat.id } })}
         onTimer={() => setTimerOpen(true)}
       />
-      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
+      <KeyboardAvoidingView behavior="padding" style={[styles.flex, styles.clip]}>
         {loadStatus === 'loading' && items.length === 0 ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.textMuted} />
@@ -272,6 +272,10 @@ function ChatView({ chat, me }: { chat: Chat; me: string }) {
             onStartReached={hasMore ? () => void loadMore() : undefined}
             onStartReachedThreshold={0.4}
             onScroll={onScroll}
+            // Keyboard or emoji panel opened: stay pinned to the newest message.
+            onLayout={() => {
+              if (atBottom.current) requestAnimationFrame(() => list.current?.scrollToEnd({ animated: false }));
+            }}
             scrollEventThrottle={64}
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
@@ -422,6 +426,8 @@ function ForwardSheet({ message, me, onClose }: { message: Message | null; me: s
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  // The message list never draws over the header.
+  clip: { overflow: 'hidden' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent: { paddingBottom: spacing.sm },
   loadingMore: { paddingVertical: spacing.md },

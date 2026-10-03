@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
@@ -29,6 +29,9 @@ import type { ReplyRef } from '../types';
 import { ReplyQuote } from './ReplyQuote';
 
 const CANCEL_DISTANCE = -110;
+const INPUT_LINE = touchTarget - 2;
+/** Web textareas default to two rows; native multiline inputs already start at one line. */
+const singleRow = Platform.OS === 'web' ? { numberOfLines: 1 } : {};
 
 type Props = {
   replyTo: ReplyRef | null;
@@ -170,6 +173,7 @@ export function Composer({ replyTo, replyAuthor, onCancelReply, onSendText, onTy
                 selectionColor={colors.accent}
                 cursorColor={colors.accent}
                 multiline
+                {...singleRow}
                 maxLength={4000}
                 accessibilityLabel="Message"
                 style={[styles.input, { color: colors.text }]}
@@ -262,9 +266,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingLeft: spacing.md,
     minHeight: touchTarget,
+    overflow: 'hidden',
   },
-  input: { flex: 1, fontFamily: fonts.sans, fontSize: 16, maxHeight: 140, paddingVertical: 12 },
-  panelButton: { width: 44, height: 46, alignItems: 'center', justifyContent: 'center' },
+  // One line = exactly 46pt (12 + 22 + 12), matching the 48pt round buttons beside it (field has a 1pt border).
+  input: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 16,
+    lineHeight: 22,
+    minHeight: INPUT_LINE,
+    maxHeight: 140,
+    paddingTop: 12,
+    paddingBottom: 12,
+    textAlignVertical: 'center',
+  },
+  panelButton: { width: 44, height: INPUT_LINE, alignItems: 'center', justifyContent: 'center' },
   round: { width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, alignItems: 'center', justifyContent: 'center' },
   recordingMic: { transform: [{ scale: 1.15 }] },
   recording: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: touchTarget, paddingLeft: spacing.sm },
