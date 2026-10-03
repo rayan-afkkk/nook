@@ -1,8 +1,9 @@
+import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
-import { Header, Icon, PressableScale, Screen, Text, TextField, toast, type IconName } from '@/components/ui';
+import { Header, Icon, PressableScale, Screen, Text, TextField, type IconName } from '@/components/ui';
 import { Float, PopIn } from '@/features/onboarding/illustrations/motion';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -17,11 +18,11 @@ const TAGS: { label: string; tone: 'mint' | 'sky' | 'peach' | 'lavender' | 'rose
   { label: 'yes!!', tone: 'lavender', tilt: 5 },
 ];
 
-const TILES: { title: string; subtitle: string; icon: IconName; tone: 'mint' | 'sky' | 'peach' | 'lavender' }[] = [
-  { title: 'GIFs', subtitle: 'Search the whole internet', icon: 'film-outline', tone: 'lavender' },
-  { title: 'Stickers', subtitle: 'Big, bold reactions', icon: 'happy-outline', tone: 'peach' },
-  { title: 'Our packs', subtitle: 'Made by your crew', icon: 'albums-outline', tone: 'mint' },
-  { title: 'Make a sticker', subtitle: 'From any photo', icon: 'crop-outline', tone: 'sky' },
+const TILES: { title: string; subtitle: string; icon: IconName; tone: 'mint' | 'sky' | 'peach' | 'lavender'; href: Href }[] = [
+  { title: 'GIFs', subtitle: 'Search the whole internet', icon: 'film-outline', tone: 'lavender', href: { pathname: '/gifs', params: { type: 'gifs' } } },
+  { title: 'Stickers', subtitle: 'Big, bold reactions', icon: 'happy-outline', tone: 'peach', href: { pathname: '/gifs', params: { type: 'stickers' } } },
+  { title: 'Our packs', subtitle: 'Made by your crew', icon: 'albums-outline', tone: 'mint', href: '/packs' },
+  { title: 'Make a sticker', subtitle: 'From any photo', icon: 'crop-outline', tone: 'sky', href: '/make-sticker' },
 ];
 
 export default function Stickers() {
@@ -30,7 +31,7 @@ export default function Stickers() {
   const { width } = useWindowDimensions();
   const tileSize = Math.floor((width - spacing.lg * 2 - spacing.sm) / 2);
   const [query, setQuery] = useState('');
-  const soon = () => toast.show('GIFs and sticker packs arrive in an upcoming update.');
+  const searchGifs = (term: string) => router.push({ pathname: '/gifs', params: { type: 'gifs', q: term } });
 
   return (
     <Screen scroll padded={false} header={<Header title="Stickers" />}>
@@ -44,7 +45,7 @@ export default function Stickers() {
           value={query}
           onChangeText={setQuery}
           returnKeyType="search"
-          onSubmitEditing={soon}
+          onSubmitEditing={() => searchGifs(query)}
           right={<Icon name="search-outline" color="textMuted" />}
         />
 
@@ -55,7 +56,7 @@ export default function Stickers() {
                 <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel={`Trending: ${t.label}`}
-                  onPress={soon}
+                  onPress={() => searchGifs(t.label)}
                   style={[styles.tag, { backgroundColor: colors.pastel[t.tone] }]}
                 >
                   <Text variant="label" color="onPastel">
@@ -74,7 +75,7 @@ export default function Stickers() {
               accessibilityRole="button"
               accessibilityLabel={tile.title}
               accessibilityHint={tile.subtitle}
-              onPress={soon}
+              onPress={() => router.push(tile.href)}
               style={[styles.tile, { width: tileSize, height: tileSize, backgroundColor: colors.pastel[tile.tone] }]}
             >
               <Icon name={tile.icon} size={30} color="onPastel" />

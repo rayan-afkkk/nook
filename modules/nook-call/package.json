@@ -1,0 +1,7 @@
+{
+  "name": "nook-call",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Expo module: full-screen incoming-call notification, ringtone and show-over-lock-screen for NOOK (Android).",
+  "main": "index.ts"
+}

@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `npm run dev` (gitignored). Production secrets: `npx wrangler secret put NAME`.
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=

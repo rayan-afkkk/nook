@@ -5,7 +5,7 @@ import {
   signInWithCredential,
   signOut as firebaseSignOut,
 } from '@react-native-firebase/auth';
-import { doc, writeBatch } from '@react-native-firebase/firestore';
+import { collectionGroup, doc, getDocs, limit, query, where, writeBatch } from '@react-native-firebase/firestore';
 import {
   GoogleSignin,
   isCancelledResponse,
@@ -14,8 +14,14 @@ import {
 } from '@react-native-google-signin/google-signin';
 
 import { GOOGLE_WEB_CLIENT_ID } from '@/constants/app';
+import { resetChatList } from '@/features/chat/chatList';
+import { deletePrivateDoc, stopPrivate } from '@/features/friends/privateDoc';
 import { useLock } from '@/features/lock/lockStore';
+import { stopPresence } from '@/features/presence/presence';
+import { resetProfiles } from '@/features/profile/profiles';
+import { unregisterPush } from '@/features/push/push';
 import { auth, db, metrics } from '@/lib/firebase';
+import { callWorker, workerConfigured } from '@/lib/worker';
 import { UserFacingError } from '@/lib/errors';
 import { usePrefs } from '@/stores/prefs';
 
@@ -70,7 +76,18 @@ export async function signInWithGoogle(): Promise<boolean> {
  * Signs out of Firebase and Google and clears this device's app lock
  * (this is also the "forgot password" path).
  */
+async function teardown(uid: string | undefined) {
+  if (uid) {
+    await unregisterPush(uid);
+    await stopPresence(uid);
+  }
+  resetChatList();
+  stopPrivate();
+  resetProfiles();
+}
+
 export async function signOut(): Promise<void> {
+  await teardown(auth().currentUser?.uid);
   await useLock.getState().clear();
   usePrefs.getState().resetForSignOut();
   try {
@@ -83,9 +100,9 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Deletes this account: profile, username reservation and the Firebase Auth user.
- * Re-authenticates with Google first because Firebase requires a recent sign-in.
- * Later phases extend this to push tokens and the user's messages.
+ * Deletes this account: my messages (and their media), push tokens, profile, username
+ * reservation and the Firebase Auth user. Re-authenticates with Google first because
+ * Firebase requires a recent sign-in.
  */
 export async function deleteAccount(username: string | null): Promise<boolean> {
   const user = auth().currentUser;
@@ -93,6 +110,10 @@ export async function deleteAccount(username: string | null): Promise<boolean> {
   const credential = await googleCredential();
   if (!credential) return false;
   await reauthenticateWithCredential(user, credential);
+
+  await deleteMyMessages(user.uid);
+  await teardown(user.uid);
+  await deletePrivateDoc(user.uid).catch(() => undefined);
 
   const batch = writeBatch(db());
   batch.delete(doc(db(), 'users', user.uid));
@@ -109,4 +130,33 @@ export async function deleteAccount(username: string | null): Promise<boolean> {
     // ignore
   }
   return true;
+}
+
+/** Deletes every message I sent, in pages. Media goes through the Worker so files are removed too. */
+async function deleteMyMessages(uid: string) {
+  for (let round = 0; round < 50; round += 1) {
+    const snap = await getDocs(query(collectionGroup(db(), 'messages'), where('senderId', '==', uid), limit(200)));
+    metrics.read(Math.max(1, snap.size), 'my messages');
+    if (snap.empty) return;
+    const plain = writeBatch(db());
+    let plainCount = 0;
+    const media = new Map<string, string[]>();
+    snap.docs.forEach((d) => {
+      const chatId = d.ref.parent.parent?.id;
+      const data = d.data() as { media?: { publicId?: string } };
+      if (chatId && data.media?.publicId && workerConfigured()) {
+        media.set(chatId, [...(media.get(chatId) ?? []), d.id]);
+      } else {
+        plain.delete(d.ref);
+        plainCount += 1;
+      }
+    });
+    for (const [chatId, ids] of media) {
+      await callWorker('/messages/delete', { chatId, messageIds: ids });
+    }
+    if (plainCount) {
+      await plain.commit();
+      metrics.delete(plainCount, 'delete my messages');
+    }
+  }
 }

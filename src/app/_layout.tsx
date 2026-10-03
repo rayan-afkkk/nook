@@ -12,6 +12,7 @@ import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OfflineBanner, ToastHost } from '@/components/ui';
@@ -42,11 +43,13 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <Root fontsReady={fontsLoaded || !!fontError} />
-        </ThemeProvider>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <Root fontsReady={fontsLoaded || !!fontError} />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

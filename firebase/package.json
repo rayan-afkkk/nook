@@ -5,7 +5,7 @@
   "description": "Security rules for NOOK and their emulator tests.",
   "scripts": {
     "test": "firebase emulators:exec --config firebase.emulators.json --only firestore,database --project demo-nook \"vitest run\"",
-    "deploy:rules": "firebase deploy --only firestore"
+    "deploy:rules": "firebase deploy --only firestore,database"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

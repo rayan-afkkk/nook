@@ -2,17 +2,23 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Chip, Header, Screen, Text } from '@/components/ui';
+import { nookCall } from '@/features/calls/nativeCall';
 import { getPermission, openSystemSettings, requestPermission, type PermissionState } from '@/features/permissions/permissions';
 import { spacing } from '@/theme';
 
 export default function NotificationSettings() {
   const [state, setState] = useState<PermissionState | null>(null);
+  const [fullScreen, setFullScreen] = useState(() => nookCall.canUseFullScreenIntent());
   const refresh = useCallback(() => {
     getPermission('notifications').then(setState).catch(() => setState('undetermined'));
   }, []);
   useEffect(() => {
     refresh();
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && refresh());
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      refresh();
+      setFullScreen(nookCall.canUseFullScreenIntent());
+    });
     return () => sub.remove();
   }, [refresh]);
 
@@ -38,8 +44,24 @@ export default function NotificationSettings() {
             <Button title="Allow notifications" icon="notifications-outline" onPress={() => void requestPermission('notifications').then(setState)} />
           )}
         </Card>
+        <Card style={styles.card}>
+          <View style={styles.row}>
+            <Text variant="subhead" style={styles.flex}>
+              Incoming calls
+            </Text>
+            <Chip label={fullScreen ? 'Full screen' : 'Banner only'} tone={fullScreen ? 'info' : 'neutral'} />
+          </View>
+          <Text variant="body" color="textMuted">
+            Calls ring full screen, even on the lock screen. On Android 14 and newer this needs the “full-screen
+            notifications” permission. Some phones (Xiaomi, Oppo, Vivo, Huawei…) also need NOOK set to “No
+            restrictions” in battery settings, or calls can’t reach a closed app.
+          </Text>
+          {!fullScreen ? (
+            <Button title="Allow full-screen calls" icon="call-outline" onPress={nookCall.openFullScreenIntentSettings} />
+          ) : null}
+        </Card>
         <Text variant="caption" color="textMuted">
-          You’ll be able to mute individual chats from each chat’s info screen.
+          Mute a single chat from its info screen (tap the name at the top of the chat).
         </Text>
       </View>
     </Screen>

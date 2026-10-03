@@ -1,3 +1,4 @@
+import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
@@ -9,6 +10,8 @@ import { useLock } from './lockStore';
 /** Locks on cold start (see lockStore.load) and after 30s in the background. */
 export function LockGate() {
   const locked = useLock((s) => s.locked);
+  // Calls can be answered from the lock screen; chats stay locked behind them.
+  const onCall = usePathname().startsWith('/call');
   const backgroundedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -26,5 +29,5 @@ export function LockGate() {
     return () => sub.remove();
   }, []);
 
-  return locked ? <LockScreen /> : null;
+  return locked && !onCall ? <LockScreen /> : null;
 }

@@ -1,0 +1,21 @@
+name = "nook-worker"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+# Never log request bodies: they may identify chats. Message text never reaches the Worker anyway.
+[observability]
+enabled = false
+
+[vars]
+# Your Firebase project id (not a secret).
+FIREBASE_PROJECT_ID = "nook-39914"
+# From LiveKit Cloud > Settings > Project: the wss:// URL (not a secret). Leave empty until you set up calls.
+LIVEKIT_URL = ""
+# Cloudinary cloud name (not a secret).
+CLOUDINARY_CLOUD_NAME = ""
+
+# Secrets (set with `npx wrangler secret put NAME`, never committed):
+#   FIREBASE_SERVICE_ACCOUNT  - the whole service-account JSON (Firebase > Project settings > Service accounts)
+#   CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+#   LIVEKIT_API_KEY, LIVEKIT_API_SECRET
