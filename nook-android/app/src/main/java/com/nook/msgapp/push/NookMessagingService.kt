@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.nook.msgapp.calls.CallController
 import com.nook.msgapp.data.Fb
+import com.nook.msgapp.data.Prefs
 import com.nook.msgapp.data.Session
 import com.nook.msgapp.data.Toasts
 import com.nook.msgapp.nav.DeepLink
@@ -47,7 +48,7 @@ class NookMessagingService : FirebaseMessagingService() {
             "message" -> {
                 // Background messages are shown by the system from the notification payload.
                 val body = message.notification?.body ?: return
-                if (inForeground() && data["chatId"] != Session.activeChatId) Toasts.show(body)
+                if (inForeground() && Prefs.messageNotifications.value && data["chatId"] != Session.activeChatId) Toasts.show(body)
             }
         }
     }

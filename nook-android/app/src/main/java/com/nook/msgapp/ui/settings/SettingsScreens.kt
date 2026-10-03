@@ -263,8 +263,9 @@ fun AppLockSettingsScreen(nav: NavController) {
         when (m) {
             LockMode.Change -> Column(Modifier.fillMaxSize().background(c.background)) {
                 NTopBar(title = "App lock", onBack = { mode = LockMode.Overview })
-                Box(Modifier.weight(1f).fillMaxWidth().navigationBarsPadding()) {
+                Box(Modifier.weight(1f).fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = Spacing.lg)) {
                     LockSetupFlow(
+                        verifyCurrent = record != null,
                         onDone = {
                             mode = LockMode.Overview
                             Toasts.show("App lock updated.")
@@ -299,7 +300,7 @@ fun AppLockSettingsScreen(nav: NavController) {
                             title = if (record != null) "Change $kindTitle" else "Set a lock",
                             subtitle = "Or switch between PIN and password",
                             icon = Icons.Outlined.VpnKey,
-                            onClick = { mode = if (record != null) LockMode.Verify else LockMode.Change },
+                            onClick = { mode = LockMode.Change },
                         )
                         NDivider(Modifier.padding(start = 46.dp))
                         ListRow(
