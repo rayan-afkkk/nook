@@ -74,20 +74,31 @@ console.log('✔ Realtime Database rules deployed');
 // 3. Firestore indexes (409 = already exists).
 const { indexes, fieldOverrides } = JSON.parse(readFileSync(resolve(root, 'firestore.indexes.json'), 'utf8'));
 const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)`;
+// Index creation needs the "Cloud Datastore Index Admin" role, which the default Firebase key lacks.
+// Missing permission is a warning (indexes can also be created once by hand in the console).
+const indexHelp = 'Grant the service account the "Cloud Datastore Index Admin" role, or create the indexes in Firebase console > Firestore > Indexes (see README).';
+let indexWarnings = 0;
 for (const ix of indexes) {
-  const r = await call(
-    token,
-    'POST',
-    `${base}/collectionGroups/${ix.collectionGroup}/indexes`,
-    { queryScope: ix.queryScope, fields: ix.fields },
-    [409],
-  );
-  console.log(r.status === 409 ? `• index on ${ix.collectionGroup} already exists` : `✔ index on ${ix.collectionGroup} created (builds in a few minutes)`);
+  const r = await call(token, 'POST', `${base}/collectionGroups/${ix.collectionGroup}/indexes`, { queryScope: ix.queryScope, fields: ix.fields }, [409, 403]);
+  if (r.status === 403) {
+    indexWarnings += 1;
+    console.log(`::warning::No permission to create the ${ix.collectionGroup} index. ${indexHelp}`);
+  } else {
+    console.log(r.status === 409 ? `• index on ${ix.collectionGroup} already exists` : `✔ index on ${ix.collectionGroup} created (builds in a few minutes)`);
+  }
 }
 for (const fo of fieldOverrides) {
-  await call(token, 'PATCH', `${base}/collectionGroups/${fo.collectionGroup}/fields/${fo.fieldPath}?updateMask=indexConfig`, {
-    indexConfig: { indexes: fo.indexes.map((i) => ({ queryScope: i.queryScope, fields: [{ fieldPath: fo.fieldPath, order: i.order }] })) },
-  });
-  console.log(`✔ field index ${fo.collectionGroup}.${fo.fieldPath}`);
+  const r = await call(
+    token,
+    'PATCH',
+    `${base}/collectionGroups/${fo.collectionGroup}/fields/${fo.fieldPath}?updateMask=indexConfig`,
+    { indexConfig: { indexes: fo.indexes.map((i) => ({ queryScope: i.queryScope, fields: [{ fieldPath: fo.fieldPath, order: i.order }] })) } },
+    [403],
+  );
+  if (r.status === 403) {
+    indexWarnings += 1;
+    console.log(`::warning::No permission to set the ${fo.collectionGroup}.${fo.fieldPath} index. ${indexHelp}`);
+  } else console.log(`✔ field index ${fo.collectionGroup}.${fo.fieldPath}`);
 }
+if (indexWarnings) console.log(`${indexWarnings} index step(s) skipped for lack of permission.`);
 console.log('Done.');
