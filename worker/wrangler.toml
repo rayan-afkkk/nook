@@ -13,7 +13,7 @@ FIREBASE_PROJECT_ID = "nook-39914"
 # From LiveKit Cloud > Settings > Project: the wss:// URL (not a secret). Leave empty until you set up calls.
 LIVEKIT_URL = ""
 # Cloudinary cloud name (not a secret).
-CLOUDINARY_CLOUD_NAME = ""
+CLOUDINARY_CLOUD_NAME = "u2xvfit2"
 
 # Secrets (set with `npx wrangler secret put NAME`, never committed):
 #   FIREBASE_SERVICE_ACCOUNT  - the whole service-account JSON (Firebase > Project settings > Service accounts)
