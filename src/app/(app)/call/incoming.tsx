@@ -118,7 +118,9 @@ export default function IncomingCall() {
         <View style={styles.actions}>
           <View style={styles.actionWrap}>
             <PressableScale accessibilityRole="button" accessibilityLabel="Decline" onPress={decline} style={[styles.action, { backgroundColor: palette.coral }]}>
-              <Icon name="call" size={30} color="#fff" />
+              <View style={styles.hangUp}>
+                <Icon name="call" size={30} color="#fff" />
+              </View>
             </PressableScale>
             <Text variant="caption" style={styles.status}>
               Decline
@@ -147,5 +149,6 @@ const styles = StyleSheet.create({
   status: { color: darkColors.textMuted },
   actions: { flexDirection: 'row', justifyContent: 'space-around' },
   actionWrap: { alignItems: 'center', gap: spacing.xs },
+  hangUp: { transform: [{ rotate: '135deg' }] },
   action: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center' },
 });

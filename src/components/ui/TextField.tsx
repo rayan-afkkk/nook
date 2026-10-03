@@ -1,5 +1,5 @@
 import { forwardRef, useState, type ReactNode } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { fonts, radius, spacing, touchTarget, useTheme } from '@/theme';
 
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  input: { flex: 1, minHeight: touchTarget, fontFamily: fonts.sans, fontSize: 17 },
+  input: { flex: 1, minHeight: touchTarget, fontFamily: fonts.sans, fontSize: 17, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as const } : null) },
   message: { minHeight: 18 },
 });

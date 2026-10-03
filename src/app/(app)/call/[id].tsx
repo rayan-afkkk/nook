@@ -37,7 +37,9 @@ function Control({ icon, label, active, onPress, danger }: { icon: IconName; lab
         scaleTo={0.9}
         style={[styles.control, { backgroundColor: danger ? palette.coral : active ? palette.cream : palette.charcoalRaised }]}
       >
-        <Icon name={icon} size={26} color={danger ? '#fff' : active ? '#000' : palette.cream} />
+        <View style={danger ? styles.hangUp : null}>
+          <Icon name={icon} size={26} color={danger ? '#fff' : active ? '#000' : palette.cream} />
+        </View>
       </PressableScale>
       <Text variant="micro" style={styles.controlLabel}>
         {label}
@@ -178,6 +180,7 @@ const styles = StyleSheet.create({
   self: { position: 'absolute', right: spacing.md, width: 110, height: 160, borderRadius: 20, overflow: 'hidden', zIndex: 2, borderWidth: 1, borderColor: palette.border },
   selfVideo: { width: '100%', height: '100%' },
   controls: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', justifyContent: 'space-evenly', paddingHorizontal: spacing.md },
+  hangUp: { transform: [{ rotate: '135deg' }] },
   controlWrap: { alignItems: 'center', gap: 6 },
   control: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   controlLabel: { color: darkColors.textMuted },
