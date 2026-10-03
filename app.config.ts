@@ -10,12 +10,13 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 const APP_NAME = 'NOOK';
 const PACKAGE = 'com.nook.msgapp';
 /** Printed by `npx eas-cli@latest init`. Not a secret; paste it here once. */
-const EAS_PROJECT_ID = '';
+const EAS_PROJECT_ID = '29271c66-b3a1-46ab-9064-03e7d46bd584';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: APP_NAME,
   slug: 'nook',
+  owner: 'hello_llo',
   scheme: 'nook',
   version: '0.1.0',
   orientation: 'portrait',
