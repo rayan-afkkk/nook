@@ -32,4 +32,4 @@ jobs:
         run: |
           echo "$SA" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          npx firebase deploy --only firestore,database --project nook-39914 --non-interactive
+          node scripts/deploy.mjs
