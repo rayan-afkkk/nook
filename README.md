@@ -3,6 +3,9 @@
 A private chat app for you and your friend group. Android first, built with Expo (React Native, TypeScript) on
 Firebase's free **Spark** plan, a free Cloudflare Worker, Cloudinary (media), Giphy and LiveKit (calls).
 
+> **Native Android version:** [`nook-android/`](nook-android/README.md) is the same app rewritten in **Kotlin +
+> Jetpack Compose**, on the same backend. Open or import that folder to build it natively.
+
 > **NOOK is not end-to-end encrypted.** Messages, profiles and chat details are stored in Google Firebase. They are
 > encrypted in transit and at rest by Google, and security rules only let chat members read a chat, but anyone who
 > administers the Firebase project could technically read them. Photos, voice notes and files are stored on

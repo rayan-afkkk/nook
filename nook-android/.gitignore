@@ -1,0 +1,14 @@
+.gradle/
+build/
+*/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+# Firebase config: add app/google-services.json yourself (see README)
+google-services.json
+*.jks
+*.keystore
