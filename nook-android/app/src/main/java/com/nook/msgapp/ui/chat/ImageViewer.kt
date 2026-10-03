@@ -2,7 +2,7 @@ package com.nook.msgapp.ui.chat
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -20,7 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +40,7 @@ import coil.compose.AsyncImage
 import com.nook.msgapp.lock.LockStore
 import com.nook.msgapp.ui.components.NIconButton
 import com.nook.msgapp.ui.theme.Spacing
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -44,23 +49,34 @@ import kotlin.math.abs
 fun ImageViewer(url: String, onClose: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val scale = remember { Animatable(1f) }
-    val tx = remember { Animatable(0f) }
-    val ty = remember { Animatable(0f) }
+    var scale by remember { mutableFloatStateOf(1f) }
+    var tx by remember { mutableFloatStateOf(0f) }
+    var ty by remember { mutableFloatStateOf(0f) }
+    var anim by remember { mutableStateOf<Job?>(null) }
     BackHandler(onBack = onClose)
 
-    fun reset() {
-        scope.launch { scale.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 400f)) }
-        scope.launch { tx.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 400f)) }
-        scope.launch { ty.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 400f)) }
+    fun animateTo(targetScale: Float, targetX: Float, targetY: Float) {
+        anim?.cancel()
+        val s0 = scale
+        val x0 = tx
+        val y0 = ty
+        anim = scope.launch {
+            animate(0f, 1f, animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)) { f, _ ->
+                scale = s0 + (targetScale - s0) * f
+                tx = x0 + (targetX - x0) * f
+                ty = y0 + (targetY - y0) * f
+            }
+        }
     }
+
+    fun reset() = animateTo(1f, 0f, 0f)
 
     Box(
         Modifier
             .fillMaxSize()
             .graphicsLayer {
                 // Fades out while it's dragged down to close.
-                alpha = if (scale.value <= 1.01f) 1f - (abs(ty.value) / (size.height.coerceAtLeast(1f))).coerceIn(0f, 0.7f) else 1f
+                alpha = if (scale <= 1.01f) 1f - (abs(ty) / (size.height.coerceAtLeast(1f))).coerceIn(0f, 0.7f) else 1f
             }
             .background(Color.Black),
     ) {
@@ -73,14 +89,12 @@ fun ImageViewer(url: String, onClose: () -> Unit) {
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onDoubleTap = { tap ->
-                            if (scale.value > 1.01f) {
+                            if (scale > 1.01f) {
                                 reset()
                             } else {
                                 val center = Offset(size.width / 2f, size.height / 2f)
                                 val target = 2.5f
-                                scope.launch { scale.animateTo(target, spring(dampingRatio = 0.8f, stiffness = 400f)) }
-                                scope.launch { tx.animateTo((center.x - tap.x) * (target - 1f), spring(dampingRatio = 0.8f, stiffness = 400f)) }
-                                scope.launch { ty.animateTo((center.y - tap.y) * (target - 1f), spring(dampingRatio = 0.8f, stiffness = 400f)) }
+                                animateTo(target, (center.x - tap.x) * (target - 1f), (center.y - tap.y) * (target - 1f))
                             }
                         },
                     )
@@ -88,38 +102,37 @@ fun ImageViewer(url: String, onClose: () -> Unit) {
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         awaitFirstDown(requireUnconsumed = false)
+                        anim?.cancel()
                         var multiTouch = false
                         do {
                             val event = awaitPointerEvent()
                             if (event.changes.size > 1) multiTouch = true
                             val zoom = event.calculateZoom()
                             val pan = event.calculatePan()
-                            val zoomed = scale.value > 1.01f
+                            val zoomed = scale > 1.01f
                             if (multiTouch || zoomed) {
-                                val newScale = (scale.value * zoom).coerceIn(1f, 5f)
+                                val newScale = (scale * zoom).coerceIn(1f, 5f)
                                 val maxX = (size.width * (newScale - 1f)) / 2f
                                 val maxY = (size.height * (newScale - 1f)) / 2f
-                                scope.launch {
-                                    scale.snapTo(newScale)
-                                    tx.snapTo((tx.value + pan.x).coerceIn(-maxX, maxX))
-                                    ty.snapTo((ty.value + pan.y).coerceIn(-maxY, maxY))
-                                }
+                                scale = newScale
+                                tx = (tx + pan.x).coerceIn(-maxX, maxX)
+                                ty = (ty + pan.y).coerceIn(-maxY, maxY)
                                 event.changes.forEach { if (it.positionChanged()) it.consume() }
                             } else if (pan.y != 0f) {
-                                scope.launch { ty.snapTo(ty.value + pan.y) }
+                                ty += pan.y
                                 event.changes.forEach { if (it.positionChanged()) it.consume() }
                             }
                         } while (event.changes.any { it.pressed })
-                        if (scale.value <= 1.01f) {
-                            if (!multiTouch && abs(ty.value) > 120.dp.toPx()) onClose() else reset()
+                        if (scale <= 1.01f) {
+                            if (!multiTouch && abs(ty) > 120.dp.toPx()) onClose() else reset()
                         }
                     }
                 }
                 .graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                    translationX = tx.value
-                    translationY = ty.value
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = tx
+                    translationY = ty
                 },
         )
         Row(

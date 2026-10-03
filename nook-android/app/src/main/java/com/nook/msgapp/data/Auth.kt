@@ -14,7 +14,9 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.GoogleAuthProvider
 import com.nook.msgapp.lock.LockStore
 import com.nook.msgapp.push.Push
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 object Auth {
     /** Shows the Google account picker and returns an ID token, or null if the user backed out. */
@@ -66,7 +68,8 @@ object Auth {
     }
 
     /** Signs out of Firebase and Google and clears this device's app lock (also the "forgot PIN" path). */
-    suspend fun signOut(context: Context) {
+    suspend fun signOut(context: Context) = withContext(NonCancellable) {
+        // The calling screen disappears mid-way (the stage changes), so this must not be cancelled.
         teardown(Fb.uid)
         LockStore.clear()
         Prefs.resetForSignOut()
