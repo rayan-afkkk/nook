@@ -1,0 +1,95 @@
+rules_version = '2';
+
+// NOOK Firestore security rules.
+// Phase 1: profiles and usernames. Everything not matched below is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Keep in sync with src/features/profile/username.ts
+    function validUsername(name) {
+      return name is string
+        && name.matches('^[a-z][a-z0-9._]{1,18}[a-z0-9]$')
+        && !name.matches('.*[.][.].*')
+        && !(name in ['admin', 'administrator', 'nook', 'nookapp', 'support', 'help', 'official',
+                      'system', 'root', 'moderator', 'mod', 'staff', 'team', 'security', 'null',
+                      'undefined', 'me', 'you', 'everyone']);
+    }
+
+    function validDisplayName(v) {
+      return v is string && v.size() > 0 && v.size() <= 40;
+    }
+
+    function validPhoto(v) {
+      return v == null || (v is string && v.size() <= 1024 && v.matches('^https://.*'));
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function usernamePath(name) {
+      return /databases/$(database)/documents/usernames/$(name);
+    }
+
+    // users/{uid}: public profile. Readable one at a time by any signed-in user
+    // (needed to show friends), never listable, writable only by its owner.
+    match /users/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Created together with usernames/{username} in one transaction.
+      allow create: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'displayName', 'photoURL', 'createdAt'])
+        && request.resource.data.keys().hasAll(['uid', 'username', 'displayName', 'createdAt'])
+        && request.resource.data.uid == uid
+        && validUsername(request.resource.data.username)
+        && validDisplayName(request.resource.data.displayName)
+        && validPhoto(request.resource.data.get('photoURL', null))
+        && request.resource.data.createdAt == request.time
+        && getAfter(usernamePath(request.resource.data.username)).data.uid == uid;
+
+      // The username is permanent: only display name and photo can change.
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL'])
+        && validDisplayName(request.resource.data.displayName)
+        && validPhoto(request.resource.data.get('photoURL', null));
+
+      allow delete: if isSelf(uid);
+    }
+
+    // usernames/{name}: { uid } reservation. Exact-name lookups only; no enumeration.
+    match /usernames/{name} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // One username per account, claimed atomically with the profile, and never overwritten
+      // (an existing name is an update, which is always denied).
+      allow create: if signedIn()
+        && validUsername(name)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && !exists(userPath(request.auth.uid))
+        && getAfter(userPath(request.auth.uid)).data.username == name;
+
+      allow update: if false;
+
+      // Only released when the owner deletes their account (profile removed in the same batch).
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && !existsAfter(userPath(request.auth.uid));
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
